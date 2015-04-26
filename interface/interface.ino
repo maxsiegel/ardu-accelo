@@ -183,7 +183,7 @@ void loop(void)
   /* Serial.print("Accel X: "); Serial.print(accel.acceleration.x); Serial.print(" "); */
   /* Serial.print("  \tY: "); Serial.print(accel.acceleration.y);       Serial.print(" "); */
   /* Serial.print("  \tZ: "); Serial.print(accel.acceleration.z);     Serial.println("  \tm/s^2"); */
-
+  /* Serial.print("ST"); */
   Serial.print("\{");
   Serial.print("\"accel\":");
   Serial.print("(");

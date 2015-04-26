@@ -11,6 +11,7 @@ def main():
     client.connect()
     while True:
         data = ser.readline()
+        print(data)
         client.send_to_blender(data)
         # dat = eval(d)
 

@@ -1,8 +1,9 @@
 #include <Adafruit_CC3000.h>
-#include <ccspi.h>
+/* #include <ccspi.h> */
 #include <SPI.h>
 #include <string.h>
-/* #include "utility/debug.h" */
+#include "utility/debug.h"
+#include "utility/socket.h"
 
 // These are the interrupt and control pins
 #define ADAFRUIT_CC3000_IRQ   3  // MUST be an interrupt pin!
@@ -12,8 +13,8 @@
 // Use hardware SPI for the remaining pins
 // On an UNO, SCK = 13, MISO = 12, and MOSI = 11
 
-#define WLAN_SSID "myhotspot"
-#define WLAN_PASS "qwerty0987"
+#define WLAN_SSID "myNetwork"
+#define WLAN_PASS "myPassword"
 #define WLAN_SECURITY WLAN_SEC_WPA2
 
 #define LISTEN_PORT 7
@@ -24,44 +25,53 @@ Adafruit_CC3000 cc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS,
                                          SPI_CLOCK_DIVIDER);
 // you can change this clock speed but DI
 
-Adafruit_CC3000_Server echoServer(LISTEN_PORT);
-
-int var = 1;
+Adafruit_CC3000_Server server(LISTEN_PORT);
 
 void setup(void)
 {
+
+  pinMode(13, OUTPUT);           /* set up LED to show connectivity */
+
   Serial.begin(115200);
-  Serial.println(F("Hello, CC3000!\n")); 
+  Serial.println(F("Hello, CC3000!\n"));
 
   /* Serial.print("Free RAM: "); Serial.println(getFreeRam(), DEC); */
   
   /* Initialise the module */
   Serial.println(F("\nInitialising the CC3000 ..."));
-  if (!cc3000.begin())
-    {
-      Serial.println(F("Unable to initialise the CC3000! Check your wiring?"));
-      while(1);
-    }
+  cc3000.begin();
   
   Serial.print(F("\nAttempting to connect to ")); Serial.println(WLAN_SSID);
-  if (!cc3000.connectToAP(WLAN_SSID, WLAN_PASS, WLAN_SECURITY)) {
-    Serial.println(F("Failed!"));
-    while(1);
-  }
 
-  Serial.println(F("Connected!"));
+  /* bool fail = false  */
+  /* while (!cc3000.connectToAP(WLAN_SSID, WLAN_PASS, WLAN_SECURITY)) */
+  /*   { */
+  /*   } */
   
-  Serial.println(F("Request DHCP"));
+  /* while (!cc3000.connectToAP(WLAN_SSID, WLAN_PASS, WLAN_SECURITY)) { */
+  /*   Serial.println(F("Retrying!")); */
+  /*   /\* while(1); *\/ */
+  /* } */
+
+  cc3000.connectToAP(WLAN_SSID, WLAN_PASS, WLAN_SECURITY, 0); /* 0 means infinite attempts */
+  
+  Serial.println(F("Connected!"));
+  Serial.println(F("Request DHCP")); /*  */
   while (!cc3000.checkDHCP())
     {
       delay(100); // ToDo: Insert a DHCP timeout!
-    }  
-  
+    }
+
   while (! displayConnectionDetails()) {
     delay(100);
   }
 
-  echoServer.begin();
+  digitalWrite(13, HIGH);       /* on means connected, ideally; should enforce this */
+  if (!cc3000.begin())
+  {
+    Serial.println(F("Couldn't begin()! Check your wiring?"));
+    while(1);
+  }
 
   Serial.println(F("Listening for connections..."));
 
@@ -69,17 +79,23 @@ void setup(void)
 
 void loop(void)
 {
-  Adafruit_CC3000_ClientRef client = echoServer.available();
+  Adafruit_CC3000_ClientRef client = server.available();
   if (client) {
     if (client.available() > 0)
       {
-        /* uint8_t ch = client.read(); */
-        /* char mstr[ ] = "marbles"; */
-        char mstr = (char)var;
-        client.write(mstr);
+        /* /\* uint8_t ch = client.read(); *\/ */
+        /* char mstr[ ] = "marbles "; */
+        /* /\* char mstr = (char)var; *\/ */
+        /* client.write(mstr, sizeof(mstr)); */
+
+        /* test */
+       // Read a byte and write it to all clients.
+       uint8_t ch = client.read();
+       client.write(ch);
+
       }
   }
-  delay(1000);
+  delay(10);
   /* Serial.println(var); */
   /* var++; */
 }

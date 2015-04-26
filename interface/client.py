@@ -27,7 +27,7 @@ def connect():
     s.connect((ip_addr, int(port_addr)))
 
     # Listen for welcome
-    data = s.recv(100)
+    data = s.recv(1000)
     print data
     print ''
 
@@ -46,7 +46,8 @@ def send_to_blender(message):
     #     break
     # else:
     s.send(json.dumps(message))
-    data = s.recv(10000)
+    # data = s.recv(10000)
+    data = s.recv(86)
     print data
 
 def quit():

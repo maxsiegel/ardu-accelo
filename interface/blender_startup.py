@@ -11,6 +11,10 @@ for o in bpy.context.scene.objects:
 
 bpy.ops.logic.sensor_add(type="ALWAYS", object=box.name)
 bpy.ops.logic.controller_add(type="PYTHON", object=box.name)
+bpy.ops.logic.actuator_add(type='MOTION', object=box.name)
+
+motion_actuator = box.game.actuators[-1]
+motion_actuator.mode = 'OBJECT_SERVO'
 
 python_controller = box.game.controllers[-1]
 python_controller.mode = 'MODULE'
