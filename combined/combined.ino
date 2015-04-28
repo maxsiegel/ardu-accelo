@@ -3,8 +3,9 @@
 #include <Adafruit_CC3000.h>
 #include <SPI.h>
 #include <Adafruit_Sensor.h>
-#include "utility/debug.h"
+/* #include "utility/debug.h" */
 #include "utility/socket.h"
+#include <stdlib.h>
 
 // These are the interrupt and control pins
 #define ADAFRUIT_CC3000_IRQ   3  // MUST be an interrupt pin!
@@ -56,8 +57,6 @@ void setup(void)
   Serial.begin(115200);
   Serial.println(F("Hello, CC3000!\n")); 
 
-  /* Serial.print("Free RAM: "); Serial.println(getFreeRam(), DEC); */
-  
   /* Initialise the module */
   /* Serial.println(F("\nInitializing...")); */
   if (!cc3000.begin())
@@ -101,30 +100,17 @@ void loop(void)
   sensors_event_t accel, mag, gyro, temp;
   lsm.getEvent(&accel, &mag, &gyro, &temp);
   /* lsm.read(); */
-  /* int xaccel = lsm.accelData.x; */
-  /* Serial.print("Accel X: "); Serial.print((int)lsm.accelData.x); Serial.print(" "); */
-  /* Serial.print("Y: "); Serial.print((int)lsm.accelData.y);       Serial.print(" "); */
-  /* Serial.print("Z: "); Serial.println((int)lsm.accelData.z);     Serial.print(" "); */
-  /* Serial.print("Mag X: "); Serial.print((int)lsm.magData.x);     Serial.print(" "); */
-  /* Serial.print("Y: "); Serial.print((int)lsm.magData.y);         Serial.print(" "); */
-  /* Serial.print("Z: "); Serial.println((int)lsm.magData.z);       Serial.print(" "); */
-  /* Serial.print("Gyro X: "); Serial.print((int)lsm.gyroData.x);   Serial.print(" "); */
-  /* Serial.print("Y: "); Serial.print((int)lsm.gyroData.y);        Serial.print(" "); */
-  /* Serial.print("Z: "); Serial.println((int)lsm.gyroData.z);      Serial.println(" "); */
-  /* Serial.print("Temp: "); Serial.print((int)lsm.temperature);    Serial.println(" "); */
+
   delay(200);
 
   /* data = char[]  */
  
   // Try to get a client which is connected.
+  Serial.println("alive");
+
   Adafruit_CC3000_ClientRef client = echoServer.available();
 
   if (client) {
-    /* char data[ 9 ]; */
-    /*   data[0] = accel.acceleration.x; */
-    /*   data[1] = accel.acceleration.y; */
-    /*   data[2] = accel.acceleration.z; */
-
     /*   data[3] = gyro.gyro.x; */
     /*   data[4] = gyro.gyro.y; */
     /*   data[5] = gyro.gyro.z; */
@@ -143,9 +129,10 @@ void loop(void)
     /* uint8_t ch = client.read(); */
  
     /* } */
-
+    /* char mstr[] = "marbles"; */
+    /* client.write(mstr, sizeof(mstr)); */
     /* client.write('-----------------------'); */
-    /* client.write(accel.acceleration.x);  */
+    /* client.write(accel.acceleration.x); */
     /* client.write(accel.acceleration.y);  */
     /* client.write(accel.acceleration.z);  */
     /* client.write(gyro.gyro.x);  */
@@ -154,9 +141,20 @@ void loop(void)
     /* client.write(mag.magnetic.x);  */
     /* client.write(mag.magnetic.y);  */
     /* client.write(mag.magnetic.z);  */
-    char buf[10];
-    sprintf(buf, "time%d%d", accel.acceleration.x, accel.acceleration.y);
-    client.println(buf);
+    char buf[40] = "";
+    char tempbuf[40] = "";
+
+    dtostrf(accel.acceleration.x, 4, 3, tempbuf);
+    strcat(buf, tempbuf);
+    /* sprintf(buf, "accel: %f, %f, %f\0", */
+    /*         accel.acceleration.x, */
+    /*         accel.acceleration.y, */
+    /*         accel.acceleration.z); */
+    /*buf[20] = '\0'; */
+    /* char buf[] = "marbles"; */
+    client.write(buf, sizeof(buf));
+    /* Serial.println(buf); */
+
     /* Serial.println('hello'); */
     
   }
