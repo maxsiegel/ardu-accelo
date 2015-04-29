@@ -4,7 +4,7 @@
 #include <SPI.h>
 #include <Adafruit_Sensor.h>
 /* #include "utility/debug.h" */
-#include "utility/socket.h"
+/* #include "utility/socket.h" */
 #include <stdlib.h>
 
 // These are the interrupt and control pins
@@ -93,7 +93,11 @@ void setup(void)
   echoServer.begin();
   
   Serial.println(F("Listening for connections..."));
+
+
 }
+
+int t = 1;
 
 void loop(void)
 {
@@ -101,13 +105,15 @@ void loop(void)
   lsm.getEvent(&accel, &mag, &gyro, &temp);
   /* lsm.read(); */
 
-  delay(200);
+  delay(20);
 
   /* data = char[]  */
  
   // Try to get a client which is connected.
-  Serial.println("alive");
 
+  Serial.println(t);
+  t++;
+  
   Adafruit_CC3000_ClientRef client = echoServer.available();
 
   if (client) {
@@ -141,12 +147,52 @@ void loop(void)
     /* client.write(mag.magnetic.x);  */
     /* client.write(mag.magnetic.y);  */
     /* client.write(mag.magnetic.z);  */
-    char buf[40] = "";
-    char tempbuf[40] = "";
-
+    char buf[90] = "";
+    char tempbuf[5] = "";
+    char time[8] = "";
+    
+    dtostrf(millis(), 8, 7, time);
+    strcat(buf, time);
+    strcat(buf, ",");
+    
     dtostrf(accel.acceleration.x, 4, 3, tempbuf);
     strcat(buf, tempbuf);
-    /* sprintf(buf, "accel: %f, %f, %f\0", */
+    strcat(buf, ",");
+
+    dtostrf(accel.acceleration.y, 4, 3, tempbuf);
+    strcat(buf, tempbuf);
+    strcat(buf, ",");
+
+    dtostrf(accel.acceleration.z, 4, 3, tempbuf);
+    strcat(buf, tempbuf);
+    strcat(buf, ",");
+
+    dtostrf(gyro.gyro.x, 4, 3, tempbuf);
+    strcat(buf, tempbuf);
+    strcat(buf, ",");
+
+    dtostrf(gyro.gyro.y, 4, 3, tempbuf);
+    strcat(buf, tempbuf);
+    strcat(buf, ",");
+
+    dtostrf(gyro.gyro.z, 4, 3, tempbuf);
+    strcat(buf, tempbuf);
+    strcat(buf, ",");
+
+    dtostrf(mag.magnetic.x, 4, 3, tempbuf);
+    strcat(buf, tempbuf);
+    strcat(buf, ",");
+
+    dtostrf(mag.magnetic.y, 4, 3, tempbuf);
+    strcat(buf, tempbuf);
+    strcat(buf, ",");
+
+    dtostrf(mag.magnetic.z, 4, 3, tempbuf);
+    strcat(buf, tempbuf);
+    /* strcat(buf, "\n"); */
+
+    
+    /* sprintf(buf, "accel: %s", tempbuf); */
     /*         accel.acceleration.x, */
     /*         accel.acceleration.y, */
     /*         accel.acceleration.z); */
