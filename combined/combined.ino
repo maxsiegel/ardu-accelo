@@ -27,7 +27,39 @@ Adafruit_CC3000 cc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS, ADAFRUIT_CC3000_IRQ
 Adafruit_CC3000_Server echoServer(LISTEN_PORT);
 Adafruit_LSM9DS0 lsm = Adafruit_LSM9DS0();
 
+void mystrcat(char a[],char b[]) {
+  int c=0;
+  int d=0;
+  while (a[c]!= '\0') {
+    c++;
+  }
 
+  while (b[d]!= '\0') {
+    a[c]=b[d]; 
+      c++;d++;
+  }
+  a[c]='\0';
+}
+
+void ctmp_insrt(char a[], const char b[]) {
+  int c=0;
+  
+  while (b[c]!= '\0') {
+    a[c]=b[c]; 
+      c++;
+  }
+  a[c]='\0';
+}
+
+void add_float_to_buffer(char buffer[], char tempbuf[], float a)
+  {
+    
+  ctmp_insrt(tempbuf, "");
+  dtostrf(a, 4, 3, tempbuf);
+  mystrcat(buffer, tempbuf);
+  ctmp_insrt(tempbuf, ",");
+  mystrcat(buffer, tempbuf);
+}
 
 void setupSensor()
 {
@@ -57,8 +89,6 @@ void setup(void)
   Serial.begin(115200);
   Serial.println(F("Hello, CC3000!\n")); 
 
-  /* Initialise the module */
-  /* Serial.println(F("\nInitializing...")); */
   if (!cc3000.begin())
     {
       Serial.println(F("Couldn't begin CC3000."));
@@ -99,106 +129,56 @@ void setup(void)
 
 int t = 1;
 
+char out_buf[100]; // = "\0";
+char tempbuf[100];// = "\0";
+char time[100];// = "\0";
+
 void loop(void)
 {
   sensors_event_t accel, mag, gyro, temp;
   lsm.getEvent(&accel, &mag, &gyro, &temp);
-  /* lsm.read(); */
 
-  delay(20);
+  out_buf[0] = '\0';
+  tempbuf[0] = '\0';
+  time[0] = '\0';
 
-  /* data = char[]  */
- 
+  
+  delay(200);
+
   // Try to get a client which is connected.
-
-  Serial.println(t);
+  Serial.print("iteration number: "); Serial.println(t);
   t++;
+  /* Serial.print("Free RAM: "); Serial.println(getFreeRam(), DEC); */
   
   Adafruit_CC3000_ClientRef client = echoServer.available();
 
   if (client) {
-    /*   data[3] = gyro.gyro.x; */
-    /*   data[4] = gyro.gyro.y; */
-    /*   data[5] = gyro.gyro.z; */
+    snprintf(time, 8, "%d", millis());
 
-    /* /\* client.write('\'gyro\':'); *\/ */
+    Serial.print("time: "); Serial.println(time);
 
-    /*   data[6] = mag.magnetic.x; */
-    /*   data[7] = mag.magnetic.y; */
-    /*   data[8] = mag.magnetic.z; */        
+    mystrcat(out_buf, time);
+    ctmp_insrt(tempbuf, ",");
+    mystrcat(out_buf, tempbuf);
 
-    /*   client.write(data, sizeof(data)); */
- 
-    // Check if there is data available to read.
-    /* if (client.available() > 0) { */
-    // Read a byte and write it to all clients.
-    /* uint8_t ch = client.read(); */
- 
-    /* } */
-    /* char mstr[] = "marbles"; */
-    /* client.write(mstr, sizeof(mstr)); */
-    /* client.write('-----------------------'); */
-    /* client.write(accel.acceleration.x); */
-    /* client.write(accel.acceleration.y);  */
-    /* client.write(accel.acceleration.z);  */
-    /* client.write(gyro.gyro.x);  */
-    /* client.write(gyro.gyro.y);  */
-    /* client.write(gyro.gyro.z);  */
-    /* client.write(mag.magnetic.x);  */
-    /* client.write(mag.magnetic.y);  */
-    /* client.write(mag.magnetic.z);  */
-    char buf[90] = "";
-    char tempbuf[5] = "";
-    char time[8] = "";
-    
-    dtostrf(millis(), 8, 7, time);
-    strcat(buf, time);
-    strcat(buf, ",");
-    
-    dtostrf(accel.acceleration.x, 4, 3, tempbuf);
-    strcat(buf, tempbuf);
-    strcat(buf, ",");
+    /* Serial.println("_____ accel.acceleration"); */
 
-    dtostrf(accel.acceleration.y, 4, 3, tempbuf);
-    strcat(buf, tempbuf);
-    strcat(buf, ",");
+    add_float_to_buffer(out_buf, tempbuf, accel.acceleration.x);
+    add_float_to_buffer(out_buf, tempbuf, accel.acceleration.y);
+    add_float_to_buffer(out_buf, tempbuf, accel.acceleration.z);
+  
+    /* Serial.println("_____ gyro.gyro"); */
 
-    dtostrf(accel.acceleration.z, 4, 3, tempbuf);
-    strcat(buf, tempbuf);
-    strcat(buf, ",");
+    add_float_to_buffer(out_buf, tempbuf, gyro.gyro.x);
+    add_float_to_buffer(out_buf, tempbuf, gyro.gyro.y);
+    add_float_to_buffer(out_buf, tempbuf, gyro.gyro.z);
 
-    dtostrf(gyro.gyro.x, 4, 3, tempbuf);
-    strcat(buf, tempbuf);
-    strcat(buf, ",");
-
-    dtostrf(gyro.gyro.y, 4, 3, tempbuf);
-    strcat(buf, tempbuf);
-    strcat(buf, ",");
-
-    dtostrf(gyro.gyro.z, 4, 3, tempbuf);
-    strcat(buf, tempbuf);
-    strcat(buf, ",");
-
-    dtostrf(mag.magnetic.x, 4, 3, tempbuf);
-    strcat(buf, tempbuf);
-    strcat(buf, ",");
-
-    dtostrf(mag.magnetic.y, 4, 3, tempbuf);
-    strcat(buf, tempbuf);
-    strcat(buf, ",");
-
-    dtostrf(mag.magnetic.z, 4, 3, tempbuf);
-    strcat(buf, tempbuf);
-    /* strcat(buf, "\n"); */
-
-    
-    /* sprintf(buf, "accel: %s", tempbuf); */
-    /*         accel.acceleration.x, */
-    /*         accel.acceleration.y, */
-    /*         accel.acceleration.z); */
-    /*buf[20] = '\0'; */
-    /* char buf[] = "marbles"; */
-    client.write(buf, sizeof(buf));
+    /* Serial.println("_____ mag.magnetic"); */
+    add_float_to_buffer(out_buf, tempbuf, mag.magnetic.x);
+    add_float_to_buffer(out_buf, tempbuf, mag.magnetic.y);
+    add_float_to_buffer(out_buf, tempbuf, mag.magnetic.z);
+  
+    client.write(out_buf, sizeof(buf));
     /* Serial.println(buf); */
 
     /* Serial.println('hello'); */
