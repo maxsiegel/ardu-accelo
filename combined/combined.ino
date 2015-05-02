@@ -27,7 +27,6 @@ Adafruit_CC3000_Server echoServer(LISTEN_PORT);
 Adafruit_LSM9DS0 lsm = Adafruit_LSM9DS0();
 
 
-
 void setupSensor()
 {
   // 1.) Set the accelerometer range
