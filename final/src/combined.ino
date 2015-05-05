@@ -7,6 +7,8 @@
 #include "utility/socket.h"
 #include <stdlib.h>
 
+/* #define DEBUG  */
+
 // These are the interrupt and control pins
 #define ADAFRUIT_CC3000_IRQ   3  // MUST be an interrupt pin!
 // These can be any two pins
@@ -65,48 +67,56 @@ void add_float_to_buffer(char buffer[], char tempbuf[], float a)
 void setup(void)
 {
 
+#if defined DEBUG
   Serial.begin(9600);
   Serial.println(F("Hello, CC3000!\n")); 
-
+#endif
+  
   if (!cc3000.begin())
     {
+#if defined DEBUG
       Serial.println(F("Couldn't begin CC3000."));
+#endif
       while(1);
     }
 
   if (!lsm.begin())
     {
+#if defined DEBUG
       Serial.println("Unable to initialize the LSM9DS0.");
+#endif
     }
+
+#if defined DEBUG
   Serial.println("Found LSM9DS0 9DOF");
-  
   Serial.print(F("\nAttempting to connect to ")); Serial.println(WLAN_SSID);
+#endif
+
   while (!cc3000.connectToAP(WLAN_SSID, WLAN_PASS, WLAN_SECURITY)) {
+#if defined DEBUG
     Serial.println(F("Failed!"));
+#endif
     /* while(1); */
     delay(500);
   }
-   
+
+#if defined DEBUG
   Serial.println(F("Connected!"));
-  
   Serial.println(F("Request DHCP"));
+#endif
   while (!cc3000.checkDHCP())
     {
       delay(100); // ToDo: Insert a DHCP timeout!
     }  
-  Serial.println("got DHCP");
-  // Display the IP address DNS, Gateway, etc.  
-  /* while (! displayConnectionDetails()) { */
-  /*   delay(1000); */
-  /* } */
 
-  Serial.println("try to begin cc3000");
   cc3000.begin();
 
   client = cc3000.connectUDP(cc3000.IP2U32(192, 168, 12, 1), 7400);
 
-  
+#if defined DEBUG
+  Serial.println(displayConnectionDetails());
   Serial.println(F("Listening for connections..."));
+#endif
   
 }
 
@@ -116,7 +126,6 @@ char tempbuf[20];
 
 void loop(void)
 {
-  Serial.print("Free RAM: "); Serial.println(getFreeRam(), DEC);
 
   
   sensors_event_t accel, mag, gyro, temp;
@@ -128,26 +137,31 @@ void loop(void)
   /* time_since_start[0] = '\0'; */
 
   delay(50);
-  
-  Serial.println("in loop");
-  
-    add_float_to_buffer(out_buf, tempbuf, accel.acceleration.x);
-    add_float_to_buffer(out_buf, tempbuf, accel.acceleration.y);
-    add_float_to_buffer(out_buf, tempbuf, accel.acceleration.z);
-  
-    /* add_float_to_buffer(out_buf, tempbuf, gyro.gyro.x); */
-    /* add_float_to_buffer(out_buf, tempbuf, gyro.gyro.y); */
-    /* add_float_to_buffer(out_buf, tempbuf, gyro.gyro.z); */
 
-    /* add_float_to_buffer(out_buf, tempbuf, mag.magnetic.x); */
-    /* add_float_to_buffer(out_buf, tempbuf, mag.magnetic.y); */
-    /* add_float_to_buffer(out_buf, tempbuf, mag.magnetic.z); */
-    /* if (client.available()) { */
-    client.println(out_buf);
-    /* client.println("hello"); */
-    Serial.print("size of buffer: "); Serial.println(strlen(out_buf));
-    Serial.println(out_buf);
-    /* }  */
+#if defined DEBUG
+  Serial.println("in loop");
+  Serial.print("Free RAM: "); Serial.println(getFreeRam(), DEC);
+#endif
+  
+  add_float_to_buffer(out_buf, tempbuf, accel.acceleration.x);
+  add_float_to_buffer(out_buf, tempbuf, accel.acceleration.y);
+  add_float_to_buffer(out_buf, tempbuf, accel.acceleration.z);
+  
+  /* add_float_to_buffer(out_buf, tempbuf, gyro.gyro.x); */
+  /* add_float_to_buffer(out_buf, tempbuf, gyro.gyro.y); */
+  /* add_float_to_buffer(out_buf, tempbuf, gyro.gyro.z); */
+
+  /* add_float_to_buffer(out_buf, tempbuf, mag.magnetic.x); */
+  /* add_float_to_buffer(out_buf, tempbuf, mag.magnetic.y); */
+  /* add_float_to_buffer(out_buf, tempbuf, mag.magnetic.z); */
+  /* if (client.available()) { */
+  client.println(out_buf);
+
+#if defined DEBUG
+  Serial.print("size of buffer: "); Serial.println(strlen(out_buf));
+  Serial.println(out_buf);
+#endif
+
 }
 
 /**************************************************************************/
