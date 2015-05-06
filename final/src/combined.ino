@@ -1,13 +1,16 @@
+/* #define DEBUG */
+
 #include <Wire.h>
 #include <Adafruit_LSM9DS0.h>
 #include <Adafruit_CC3000.h>
 #include <SPI.h>
 #include <Adafruit_Sensor.h>
-#include "utility/debug.h"
 #include "utility/socket.h"
 #include <stdlib.h>
 
-/* #define DEBUG  */
+#if defined DEBUG
+#include "utility/debug.h"
+#endif
 
 // These are the interrupt and control pins
 #define ADAFRUIT_CC3000_IRQ   3  // MUST be an interrupt pin!
@@ -55,14 +58,47 @@ void ctmp_insrt(char a[], const char b[]) {
   a[c]='\0';
 }
 
-void add_float_to_buffer(char buffer[], char tempbuf[], float a)
-{
-  ctmp_insrt(tempbuf, "");
-  dtostrf(a, 4, 3, tempbuf);
-  mystrcat(buffer, tempbuf);
-  ctmp_insrt(tempbuf, ",");
-  mystrcat(buffer, tempbuf);
+void send_packet(char out_buf[], char temp_buf[], char title[], float x, float y, float z, long trial_num) {
+
+  // kill anything that was in buffers
+  out_buf[0] = '\0';
+  temp_buf[0] = '\0';
+
+  ctmp_insrt(temp_buf, "");
+
+  mystrcat(out_buf, title);
+  
+  add_float_to_buffer(out_buf, temp_buf, x);
+  add_float_to_buffer(out_buf, temp_buf, y);
+  add_float_to_buffer(out_buf, temp_buf, z);
+
+  add_long_to_buffer(out_buf, temp_buf, trial_num);
+  
+  client.fastrprintln(out_buf);
+  
+#if defined DEBUG
+  Serial.print("size of buffer: "); Serial.println(strlen(out_buf));
+  Serial.println(out_buf);
+#endif
+
 }
+
+
+void add_float_to_buffer(char buffer[], char temp_buf[], float a)
+{
+  ctmp_insrt(temp_buf, "");
+  dtostrf(a, 4, 3, temp_buf);
+  mystrcat(buffer, temp_buf);
+  ctmp_insrt(temp_buf, ",");
+  mystrcat(buffer, temp_buf);
+}
+
+void add_long_to_buffer(char buffer[], char temp_buf[], long a)
+  {
+    ctmp_insrt(temp_buf, "");
+    ltoa(a, temp_buf, 10);
+    mystrcat(buffer, temp_buf);
+  }
 
 void setup(void)
 {
@@ -121,41 +157,53 @@ void setup(void)
 }
 
 char out_buf[63];
-char tempbuf[20];
+char temp_buf[20];
+long trial_num = 1;
+
 /* char time_since_start[100]; */
 
 void loop(void)
 {
 
-  
   sensors_event_t accel, mag, gyro, temp;
   lsm.getEvent(&accel, &mag, &gyro, &temp);
 
-  // kill anything that was in buffers
-  out_buf[0] = '\0';
-  tempbuf[0] = '\0';
   /* time_since_start[0] = '\0'; */
 
-  delay(50);
+  delay(20);
 
 #if defined DEBUG
   Serial.println("in loop");
   Serial.print("Free RAM: "); Serial.println(getFreeRam(), DEC);
 #endif
-  
-  add_float_to_buffer(out_buf, tempbuf, accel.acceleration.x);
-  add_float_to_buffer(out_buf, tempbuf, accel.acceleration.y);
-  add_float_to_buffer(out_buf, tempbuf, accel.acceleration.z);
-  
-  /* add_float_to_buffer(out_buf, tempbuf, gyro.gyro.x); */
-  /* add_float_to_buffer(out_buf, tempbuf, gyro.gyro.y); */
-  /* add_float_to_buffer(out_buf, tempbuf, gyro.gyro.z); */
 
-  /* add_float_to_buffer(out_buf, tempbuf, mag.magnetic.x); */
-  /* add_float_to_buffer(out_buf, tempbuf, mag.magnetic.y); */
-  /* add_float_to_buffer(out_buf, tempbuf, mag.magnetic.z); */
-  /* if (client.available()) { */
-  client.println(out_buf);
+
+  send_packet(out_buf,
+              temp_buf,
+              "accel: ",
+              accel.acceleration.x,
+              accel.acceleration.y,
+              accel.acceleration.z,
+              trial_num);
+
+  send_packet(out_buf,
+              temp_buf,
+              "gyro: ",
+              gyro.gyro.x,
+              gyro.gyro.y,
+              gyro.gyro.z,
+              trial_num);
+
+  send_packet(out_buf,
+              temp_buf,
+              "mag: ",
+              mag.magnetic.x,
+              mag.magnetic.y,
+              mag.magnetic.z,
+              trial_num);
+
+  trial_num++;
+
 
 #if defined DEBUG
   Serial.print("size of buffer: "); Serial.println(strlen(out_buf));
