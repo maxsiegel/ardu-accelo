@@ -3,15 +3,18 @@
 #include <Adafruit_CC3000.h>
 #include <SPI.h>
 #include <Adafruit_Sensor.h>
-/* #include "utility/debug.h" */
-/* #include "utility/socket.h" */
+#include "utility/debug.h"
+#include "utility/socket.h"
 #include <stdlib.h>
+
+/* #define DEBUG  */
 
 // These are the interrupt and control pins
 #define ADAFRUIT_CC3000_IRQ   3  // MUST be an interrupt pin!
 // These can be any two pins
 #define ADAFRUIT_CC3000_VBAT  5
 #define ADAFRUIT_CC3000_CS    10
+
 // Use hardware SPI for the remaining pins
 // On an UNO, SCK = 13, MISO = 12, and MOSI = 11
 Adafruit_CC3000 cc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS, ADAFRUIT_CC3000_IRQ, ADAFRUIT_CC3000_VBAT,
@@ -22,10 +25,11 @@ Adafruit_CC3000 cc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS, ADAFRUIT_CC3000_IRQ
 // Security can be WLAN_SEC_UNSEC, WLAN_SEC_WEP, WLAN_SEC_WPA or WLAN_SEC_WPA2
 #define WLAN_SECURITY   WLAN_SEC_WPA2
 
-#define LISTEN_PORT           7    // What TCP port to listen on for connections.  The echo protocol uses port 7.
+#define SEND_PORT           7    // What TCP port to listen on for connections.  The echo protocol uses port 7.
 
-Adafruit_CC3000_Server echoServer(LISTEN_PORT);
 Adafruit_LSM9DS0 lsm = Adafruit_LSM9DS0();
+Adafruit_CC3000_Client client;
+
 
 void mystrcat(char a[],char b[]) {
   int c=0;
@@ -36,26 +40,23 @@ void mystrcat(char a[],char b[]) {
 
   while (b[d]!= '\0') {
     a[c]=b[d]; 
-      c++;d++;
+    c++;d++;
   }
   a[c]='\0';
 }
 
-<<<<<<< variant A
->>>>>>> variant B
 void ctmp_insrt(char a[], const char b[]) {
   int c=0;
   
   while (b[c]!= '\0') {
     a[c]=b[c]; 
-      c++;
+    c++;
   }
   a[c]='\0';
 }
 
 void add_float_to_buffer(char buffer[], char tempbuf[], float a)
-  {
-    
+{
   ctmp_insrt(tempbuf, "");
   dtostrf(a, 4, 3, tempbuf);
   mystrcat(buffer, tempbuf);
@@ -63,132 +64,104 @@ void add_float_to_buffer(char buffer[], char tempbuf[], float a)
   mystrcat(buffer, tempbuf);
 }
 
-####### Ancestor
-
-======= end
-void setupSensor()
-{
-  // 1.) Set the accelerometer range
-  lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_2G);
-  //lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_4G);
-  //lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_6G);
-  //lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_8G);
-  //lsm.setupAccel(lsm.LSM9DS0_ACCELRANGE_16G);
-  
-  // 2.) Set the magnetometer sensitivity
-  lsm.setupMag(lsm.LSM9DS0_MAGGAIN_2GAUSS);
-  //lsm.setupMag(lsm.LSM9DS0_MAGGAIN_4GAUSS);
-  //lsm.setupMag(lsm.LSM9DS0_MAGGAIN_8GAUSS);
-  //lsm.setupMag(lsm.LSM9DS0_MAGGAIN_12GAUSS);
-
-  // 3.) Setup the gyroscope
-  lsm.setupGyro(lsm.LSM9DS0_GYROSCALE_245DPS);
-  //lsm.setupGyro(lsm.LSM9DS0_GYROSCALE_500DPS);
-  //lsm.setupGyro(lsm.LSM9DS0_GYROSCALE_2000DPS);
-}
-
-  
 void setup(void)
 {
 
-  Serial.begin(115200);
+#if defined DEBUG
+  Serial.begin(9600);
   Serial.println(F("Hello, CC3000!\n")); 
-
+#endif
+  
   if (!cc3000.begin())
     {
+#if defined DEBUG
       Serial.println(F("Couldn't begin CC3000."));
+#endif
       while(1);
     }
 
   if (!lsm.begin())
     {
+#if defined DEBUG
       Serial.println("Unable to initialize the LSM9DS0.");
+#endif
     }
+
+#if defined DEBUG
   Serial.println("Found LSM9DS0 9DOF");
-  
   Serial.print(F("\nAttempting to connect to ")); Serial.println(WLAN_SSID);
-  if (!cc3000.connectToAP(WLAN_SSID, WLAN_PASS, WLAN_SECURITY)) {
+#endif
+
+  while (!cc3000.connectToAP(WLAN_SSID, WLAN_PASS, WLAN_SECURITY)) {
+#if defined DEBUG
     Serial.println(F("Failed!"));
-    while(1);
+#endif
+    /* while(1); */
+    delay(500);
   }
-   
+
+#if defined DEBUG
   Serial.println(F("Connected!"));
-  
   Serial.println(F("Request DHCP"));
+#endif
   while (!cc3000.checkDHCP())
     {
       delay(100); // ToDo: Insert a DHCP timeout!
     }  
 
-  /* Display the IP address DNS, Gateway, etc. */  
-  while (! displayConnectionDetails()) {
-    delay(1000);
-  }
+  cc3000.begin();
 
-  echoServer.begin();
-  
+  client = cc3000.connectUDP(cc3000.IP2U32(192, 168, 12, 1), 7400);
+
+#if defined DEBUG
+  Serial.println(displayConnectionDetails());
   Serial.println(F("Listening for connections..."));
-
-
+#endif
+  
 }
 
-int t = 1;
-
-char out_buf[100]; // = "\0";
-char tempbuf[100];// = "\0";
-char time[100];// = "\0";
+char out_buf[63];
+char tempbuf[20];
+/* char time_since_start[100]; */
 
 void loop(void)
 {
+
+  
   sensors_event_t accel, mag, gyro, temp;
   lsm.getEvent(&accel, &mag, &gyro, &temp);
 
+  // kill anything that was in buffers
   out_buf[0] = '\0';
   tempbuf[0] = '\0';
-  time[0] = '\0';
+  /* time_since_start[0] = '\0'; */
 
+  delay(50);
+
+#if defined DEBUG
+  Serial.println("in loop");
+  Serial.print("Free RAM: "); Serial.println(getFreeRam(), DEC);
+#endif
   
-  delay(200);
-
-  // Try to get a client which is connected.
-  Serial.print("iteration number: "); Serial.println(t);
-  t++;
-  /* Serial.print("Free RAM: "); Serial.println(getFreeRam(), DEC); */
+  add_float_to_buffer(out_buf, tempbuf, accel.acceleration.x);
+  add_float_to_buffer(out_buf, tempbuf, accel.acceleration.y);
+  add_float_to_buffer(out_buf, tempbuf, accel.acceleration.z);
   
-  Adafruit_CC3000_ClientRef client = echoServer.available();
+  /* add_float_to_buffer(out_buf, tempbuf, gyro.gyro.x); */
+  /* add_float_to_buffer(out_buf, tempbuf, gyro.gyro.y); */
+  /* add_float_to_buffer(out_buf, tempbuf, gyro.gyro.z); */
 
-  if (client) {
-    snprintf(time, 8, "%d", millis());
+  /* add_float_to_buffer(out_buf, tempbuf, mag.magnetic.x); */
+  /* add_float_to_buffer(out_buf, tempbuf, mag.magnetic.y); */
+  /* add_float_to_buffer(out_buf, tempbuf, mag.magnetic.z); */
+  /* if (client.available()) { */
+  client.println(out_buf);
 
-    Serial.print("time: "); Serial.println(time);
+#if defined DEBUG
+  Serial.print("size of buffer: "); Serial.println(strlen(out_buf));
+  Serial.println(out_buf);
+#endif
 
-    mystrcat(out_buf, time);
-    ctmp_insrt(tempbuf, ",");
-    mystrcat(out_buf, tempbuf);
-
-    /* Serial.println("_____ accel.acceleration"); */
-
-    add_float_to_buffer(out_buf, tempbuf, accel.acceleration.x);
-    add_float_to_buffer(out_buf, tempbuf, accel.acceleration.y);
-    add_float_to_buffer(out_buf, tempbuf, accel.acceleration.z);
-  
-    /* Serial.println("_____ gyro.gyro"); */
-
-    add_float_to_buffer(out_buf, tempbuf, gyro.gyro.x);
-    add_float_to_buffer(out_buf, tempbuf, gyro.gyro.y);
-    add_float_to_buffer(out_buf, tempbuf, gyro.gyro.z);
-
-    /* Serial.println("_____ mag.magnetic"); */
-    add_float_to_buffer(out_buf, tempbuf, mag.magnetic.x);
-    add_float_to_buffer(out_buf, tempbuf, mag.magnetic.y);
-    add_float_to_buffer(out_buf, tempbuf, mag.magnetic.z);
-  
-    client.write(out_buf, sizeof(buf));
-    /* Serial.println(buf); */
-
-    /* Serial.println('hello'); */
-    
-  }
 }
 
 /**************************************************************************/
