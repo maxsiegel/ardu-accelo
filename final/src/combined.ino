@@ -68,11 +68,11 @@ void send_packet(char out_buf[], char temp_buf[], char title[], float x, float y
 
   mystrcat(out_buf, title);
   
-  add_float_to_buffer(out_buf, temp_buf, x);
-  add_float_to_buffer(out_buf, temp_buf, y);
-  add_float_to_buffer(out_buf, temp_buf, z);
+  add_to_buffer(out_buf, temp_buf, x);
+  add_to_buffer(out_buf, temp_buf, y);
+  add_to_buffer(out_buf, temp_buf, z);
 
-  add_long_to_buffer(out_buf, temp_buf, trial_num);
+  add_to_buffer(out_buf, temp_buf, trial_num);
   
   client.fastrprintln(out_buf);
   
@@ -84,7 +84,7 @@ void send_packet(char out_buf[], char temp_buf[], char title[], float x, float y
 }
 
 
-void add_float_to_buffer(char buffer[], char temp_buf[], float a)
+void add_to_buffer(char buffer[], char temp_buf[], float a)
 {
   ctmp_insrt(temp_buf, "");
   dtostrf(a, 4, 3, temp_buf);
@@ -93,7 +93,7 @@ void add_float_to_buffer(char buffer[], char temp_buf[], float a)
   mystrcat(buffer, temp_buf);
 }
 
-void add_long_to_buffer(char buffer[], char temp_buf[], long a)
+void add_to_buffer(char buffer[], char temp_buf[], long a)
   {
     ctmp_insrt(temp_buf, "");
     ltoa(a, temp_buf, 10);
