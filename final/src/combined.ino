@@ -73,8 +73,8 @@ void send_packet(char out_buf[], char temp_buf[], char title[], float x, float y
   add_to_buffer(out_buf, temp_buf, z);
 
   add_to_buffer(out_buf, temp_buf, trial_num);
-  
-  client.fastrprintln(out_buf);
+
+  client.fastrprint(out_buf);
   
 #if defined DEBUG
   Serial.print("size of buffer: "); Serial.println(strlen(out_buf));
