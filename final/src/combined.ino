@@ -33,6 +33,13 @@ Adafruit_CC3000 cc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS, ADAFRUIT_CC3000_IRQ
 Adafruit_LSM9DS0 lsm = Adafruit_LSM9DS0();
 Adafruit_CC3000_Client client;
 
+char out_buf[63];
+char temp_buf[20];
+
+int session_number;
+unsigned long trial_num = 1;
+unsigned long time_since_start;
+
 
 void mystrcat(char a[],char b[]) {
   int c=0;
@@ -156,20 +163,13 @@ void setup(void)
   
 }
 
-char out_buf[63];
-char temp_buf[20];
-long trial_num = 1;
-
-/* char time_since_start[100]; */
-
 void loop(void)
 {
 
   sensors_event_t accel, mag, gyro, temp;
   lsm.getEvent(&accel, &mag, &gyro, &temp);
 
-  /* time_since_start[0] = '\0'; */
-
+  
   delay(20);
 
 #if defined DEBUG
