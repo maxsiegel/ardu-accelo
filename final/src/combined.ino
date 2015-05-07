@@ -36,7 +36,6 @@ Adafruit_CC3000_Client client;
 char out_buf[63];
 char temp_buf[20];
 
-int session_number;
 unsigned long trial_num = 1;
 unsigned long time_since_start;
 
@@ -65,8 +64,11 @@ void ctmp_insrt(char a[], const char b[]) {
   a[c]='\0';
 }
 
-void send_packet(char out_buf[], char temp_buf[], char title[], float x, float y, float z, long trial_num) {
+void send_packet(char out_buf[], char temp_buf[], char title[], float x, float y, float z, unsigned long trial_num, unsigned long time_since_start) {
 
+
+  // buffer code is then: sensor type, x, y, z, trial number, timestamp
+  
   // kill anything that was in buffers
   out_buf[0] = '\0';
   temp_buf[0] = '\0';
@@ -79,7 +81,11 @@ void send_packet(char out_buf[], char temp_buf[], char title[], float x, float y
   add_to_buffer(out_buf, temp_buf, y);
   add_to_buffer(out_buf, temp_buf, z);
 
+  /* add_to_buffer(out_buf, temp_buf, session_number); */
+  /* mystrcat(out_buf, ","); */
   add_to_buffer(out_buf, temp_buf, trial_num);
+  mystrcat(out_buf, ",");
+  add_to_buffer(out_buf, temp_buf, time_since_start);
 
   client.fastrprint(out_buf);
   
@@ -100,12 +106,12 @@ void add_to_buffer(char buffer[], char temp_buf[], float a)
   mystrcat(buffer, temp_buf);
 }
 
-void add_to_buffer(char buffer[], char temp_buf[], long a)
-  {
-    ctmp_insrt(temp_buf, "");
-    ltoa(a, temp_buf, 10);
-    mystrcat(buffer, temp_buf);
-  }
+void add_to_buffer(char buffer[], char temp_buf[], unsigned long a)
+{
+  ctmp_insrt(temp_buf, "");
+  ltoa(a, temp_buf, 10);
+  mystrcat(buffer, temp_buf);
+}
 
 void setup(void)
 {
@@ -177,14 +183,15 @@ void loop(void)
   Serial.print("Free RAM: "); Serial.println(getFreeRam(), DEC);
 #endif
 
-
+  time_since_start = millis();
   send_packet(out_buf,
               temp_buf,
               "accel: ",
               accel.acceleration.x,
               accel.acceleration.y,
               accel.acceleration.z,
-              trial_num);
+              trial_num,
+              time_since_start);
 
   send_packet(out_buf,
               temp_buf,
@@ -192,7 +199,8 @@ void loop(void)
               gyro.gyro.x,
               gyro.gyro.y,
               gyro.gyro.z,
-              trial_num);
+              trial_num,
+              time_since_start);
 
   send_packet(out_buf,
               temp_buf,
@@ -200,7 +208,8 @@ void loop(void)
               mag.magnetic.x,
               mag.magnetic.y,
               mag.magnetic.z,
-              trial_num);
+              trial_num,
+              time_since_start);
 
   trial_num++;
 
