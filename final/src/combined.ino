@@ -36,6 +36,7 @@ Adafruit_CC3000_Client client;
 char out_buf[63];
 char temp_buf[20];
 
+int session_number;
 unsigned long trial_num = 1;
 unsigned long time_since_start;
 
@@ -76,13 +77,15 @@ void send_packet(char out_buf[], char temp_buf[], char title[], float x, float y
   ctmp_insrt(temp_buf, "");
 
   mystrcat(out_buf, title);
+  mystrcat(out_buf, ",");
   
   add_to_buffer(out_buf, temp_buf, x);
   add_to_buffer(out_buf, temp_buf, y);
   add_to_buffer(out_buf, temp_buf, z);
 
-  /* add_to_buffer(out_buf, temp_buf, session_number); */
-  /* mystrcat(out_buf, ","); */
+
+  add_to_buffer(out_buf, temp_buf, (unsigned long)session_number);
+  mystrcat(out_buf, ",");
   add_to_buffer(out_buf, temp_buf, trial_num);
   mystrcat(out_buf, ",");
   add_to_buffer(out_buf, temp_buf, time_since_start);
@@ -116,9 +119,13 @@ void add_to_buffer(char buffer[], char temp_buf[], unsigned long a)
 void setup(void)
 {
 
+  // random numbers are probably fine for session IDs
+  randomSeed(analogRead(0)); // reads noise off of pin 0
+  session_number = random(1000);
+
 #if defined DEBUG
   Serial.begin(9600);
-  Serial.println(F("Hello, CC3000!\n")); 
+  Serial.println(F("CC3000 good.")); 
 #endif
   
   if (!cc3000.begin())
@@ -137,7 +144,7 @@ void setup(void)
     }
 
 #if defined DEBUG
-  Serial.println("Found LSM9DS0 9DOF");
+  Serial.println("LSM9DS0 9DOF good.");
   Serial.print(F("\nAttempting to connect to ")); Serial.println(WLAN_SSID);
 #endif
 
@@ -186,7 +193,7 @@ void loop(void)
   time_since_start = millis();
   send_packet(out_buf,
               temp_buf,
-              "accel: ",
+              "accel",
               accel.acceleration.x,
               accel.acceleration.y,
               accel.acceleration.z,
@@ -195,7 +202,7 @@ void loop(void)
 
   send_packet(out_buf,
               temp_buf,
-              "gyro: ",
+              "gyro",
               gyro.gyro.x,
               gyro.gyro.y,
               gyro.gyro.z,
@@ -204,7 +211,7 @@ void loop(void)
 
   send_packet(out_buf,
               temp_buf,
-              "mag: ",
+              "mag",
               mag.magnetic.x,
               mag.magnetic.y,
               mag.magnetic.z,
