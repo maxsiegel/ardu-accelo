@@ -1,13 +1,16 @@
+/* #define DEBUG */
+
 #include <Wire.h>
 #include <Adafruit_LSM9DS0.h>
 #include <Adafruit_CC3000.h>
 #include <SPI.h>
 #include <Adafruit_Sensor.h>
-#include "utility/debug.h"
 #include "utility/socket.h"
 #include <stdlib.h>
 
-/* #define DEBUG  */
+#if defined DEBUG
+#include "utility/debug.h"
+#endif
 
 // These are the interrupt and control pins
 #define ADAFRUIT_CC3000_IRQ   3  // MUST be an interrupt pin!
@@ -29,6 +32,13 @@ Adafruit_CC3000 cc3000 = Adafruit_CC3000(ADAFRUIT_CC3000_CS, ADAFRUIT_CC3000_IRQ
 
 Adafruit_LSM9DS0 lsm = Adafruit_LSM9DS0();
 Adafruit_CC3000_Client client;
+
+char out_buf[63];
+char temp_buf[20];
+
+int session_number;
+unsigned long trial_num = 1;
+unsigned long time_since_start;
 
 
 void mystrcat(char a[],char b[]) {
@@ -55,21 +65,67 @@ void ctmp_insrt(char a[], const char b[]) {
   a[c]='\0';
 }
 
-void add_float_to_buffer(char buffer[], char tempbuf[], float a)
+void send_packet(char out_buf[], char temp_buf[], char title[], float x, float y, float z, unsigned long trial_num, unsigned long time_since_start) {
+
+
+  // buffer code is then: sensor type, x, y, z, trial number, timestamp
+  
+  // kill anything that was in buffers
+  out_buf[0] = '\0';
+  temp_buf[0] = '\0';
+
+  ctmp_insrt(temp_buf, "");
+
+  mystrcat(out_buf, title);
+  mystrcat(out_buf, ",");
+  
+  add_to_buffer(out_buf, temp_buf, x);
+  add_to_buffer(out_buf, temp_buf, y);
+  add_to_buffer(out_buf, temp_buf, z);
+
+
+  add_to_buffer(out_buf, temp_buf, (unsigned long)session_number);
+  mystrcat(out_buf, ",");
+  add_to_buffer(out_buf, temp_buf, trial_num);
+  mystrcat(out_buf, ",");
+  add_to_buffer(out_buf, temp_buf, time_since_start);
+
+  client.fastrprint(out_buf);
+  
+#if defined DEBUG
+  Serial.print("size of buffer: "); Serial.println(strlen(out_buf));
+  Serial.println(out_buf);
+#endif
+
+}
+
+
+void add_to_buffer(char buffer[], char temp_buf[], float a)
 {
-  ctmp_insrt(tempbuf, "");
-  dtostrf(a, 4, 3, tempbuf);
-  mystrcat(buffer, tempbuf);
-  ctmp_insrt(tempbuf, ",");
-  mystrcat(buffer, tempbuf);
+  ctmp_insrt(temp_buf, "");
+  dtostrf(a, 4, 3, temp_buf);
+  mystrcat(buffer, temp_buf);
+  ctmp_insrt(temp_buf, ",");
+  mystrcat(buffer, temp_buf);
+}
+
+void add_to_buffer(char buffer[], char temp_buf[], unsigned long a)
+{
+  ctmp_insrt(temp_buf, "");
+  ltoa(a, temp_buf, 10);
+  mystrcat(buffer, temp_buf);
 }
 
 void setup(void)
 {
 
+  // random numbers are probably fine for session IDs
+  randomSeed(analogRead(0)); // reads noise off of pin 0
+  session_number = random(1000);
+
 #if defined DEBUG
   Serial.begin(9600);
-  Serial.println(F("Hello, CC3000!\n")); 
+  Serial.println(F("CC3000 good.")); 
 #endif
   
   if (!cc3000.begin())
@@ -88,7 +144,7 @@ void setup(void)
     }
 
 #if defined DEBUG
-  Serial.println("Found LSM9DS0 9DOF");
+  Serial.println("LSM9DS0 9DOF good.");
   Serial.print(F("\nAttempting to connect to ")); Serial.println(WLAN_SSID);
 #endif
 
@@ -120,42 +176,50 @@ void setup(void)
   
 }
 
-char out_buf[63];
-char tempbuf[20];
-/* char time_since_start[100]; */
-
 void loop(void)
 {
 
-  
   sensors_event_t accel, mag, gyro, temp;
   lsm.getEvent(&accel, &mag, &gyro, &temp);
 
-  // kill anything that was in buffers
-  out_buf[0] = '\0';
-  tempbuf[0] = '\0';
-  /* time_since_start[0] = '\0'; */
-
-  delay(50);
+  
+  delay(20);
 
 #if defined DEBUG
   Serial.println("in loop");
   Serial.print("Free RAM: "); Serial.println(getFreeRam(), DEC);
 #endif
-  
-  add_float_to_buffer(out_buf, tempbuf, accel.acceleration.x);
-  add_float_to_buffer(out_buf, tempbuf, accel.acceleration.y);
-  add_float_to_buffer(out_buf, tempbuf, accel.acceleration.z);
-  
-  /* add_float_to_buffer(out_buf, tempbuf, gyro.gyro.x); */
-  /* add_float_to_buffer(out_buf, tempbuf, gyro.gyro.y); */
-  /* add_float_to_buffer(out_buf, tempbuf, gyro.gyro.z); */
 
-  /* add_float_to_buffer(out_buf, tempbuf, mag.magnetic.x); */
-  /* add_float_to_buffer(out_buf, tempbuf, mag.magnetic.y); */
-  /* add_float_to_buffer(out_buf, tempbuf, mag.magnetic.z); */
-  /* if (client.available()) { */
-  client.println(out_buf);
+  time_since_start = millis();
+  send_packet(out_buf,
+              temp_buf,
+              "accel",
+              accel.acceleration.x,
+              accel.acceleration.y,
+              accel.acceleration.z,
+              trial_num,
+              time_since_start);
+
+  send_packet(out_buf,
+              temp_buf,
+              "gyro",
+              gyro.gyro.x,
+              gyro.gyro.y,
+              gyro.gyro.z,
+              trial_num,
+              time_since_start);
+
+  send_packet(out_buf,
+              temp_buf,
+              "mag",
+              mag.magnetic.x,
+              mag.magnetic.y,
+              mag.magnetic.z,
+              trial_num,
+              time_since_start);
+
+  trial_num++;
+
 
 #if defined DEBUG
   Serial.print("size of buffer: "); Serial.println(strlen(out_buf));
