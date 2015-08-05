@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# reboot wifi
+sudo kill -s SIGINT $(ps aux | grep create_ap | grep hostapd | awk '{print $2}')
+
+sudo create_ap -n wlan0 myNetwork myPassword &
+
+python /home/maxs/ardu-accelo/final/receive.py
